@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  job-hunter:
+    build: .
+    container_name: job-hunter
+    restart: unless-stopped
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=America/Montreal

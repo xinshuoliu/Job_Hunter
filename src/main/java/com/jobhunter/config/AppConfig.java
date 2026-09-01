@@ -1,0 +1,196 @@
+package com.jobhunter.config;
+
+import com.jobhunter.model.FilterCriteria;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class AppConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AppConfig.class);
+
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\\}");
+
+    private String adzunaAppId;
+    private String adzunaAppKey;
+    private String adzunaCountry;
+
+    private String jSearchApiKey;
+
+    private String searchQuery;
+    private String searchLocation;
+    private int pollIntervalMinutes;
+
+    private FilterCriteria filterCriteria;
+
+    private Map<String, Boolean> providerToggles = Map.of();
+
+    private boolean consoleEnabled;
+    private boolean discordEnabled;
+    private String discordWebhookUrl;
+    private String discordMentionUserId;
+    private boolean emailEnabled;
+    private String smtpHost;
+    private int smtpPort;
+    private String smtpUsername;
+    private String smtpPassword;
+    private String emailFrom;
+    private String emailTo;
+
+    private String dbPath;
+    private int retentionDays;
+
+    @SuppressWarnings("unchecked")
+    public static AppConfig load(String filePath) {
+        AppConfig config = new AppConfig();
+        Yaml yaml = new Yaml();
+
+        try (InputStream input = new FileInputStream(filePath)) {
+            Map<String, Object> root = yaml.load(input);
+
+            Map<String, Object> apis = (Map<String, Object>) root.getOrDefault("apis", Map.of());
+            Map<String, Object> adzuna = (Map<String, Object>) apis.getOrDefault("adzuna", Map.of());
+            config.adzunaAppId = getString(adzuna, "app_id", "");
+            config.adzunaAppKey = getString(adzuna, "app_key", "");
+            config.adzunaCountry = getString(adzuna, "country", "ca");
+
+            Map<String, Object> jsearch = (Map<String, Object>) apis.getOrDefault("jsearch", Map.of());
+            config.jSearchApiKey = getString(jsearch, "api_key", "");
+
+            Map<String, Object> search = (Map<String, Object>) root.getOrDefault("search", Map.of());
+            config.searchQuery = getString(search, "query", "java developer");
+            config.searchLocation = getString(search, "location", "Montreal");
+            config.pollIntervalMinutes = getInt(search, "poll_interval_minutes", 30);
+
+            Map<String, Object> filters = (Map<String, Object>) root.getOrDefault("filters", Map.of());
+            FilterCriteria criteria = new FilterCriteria();
+            criteria.setRequiredKeywords((List<String>) filters.getOrDefault("required_keywords", List.of()));
+            criteria.setKeywords((List<String>) filters.getOrDefault("keywords", List.of()));
+            criteria.setExcludeKeywords((List<String>) filters.getOrDefault("exclude_keywords", List.of()));
+            criteria.setLocations((List<String>) filters.getOrDefault("locations", List.of()));
+            if (filters.containsKey("min_salary")) {
+                criteria.setMinSalary(((Number) filters.get("min_salary")).doubleValue());
+            }
+            criteria.setCurrency(getString(filters, "currency", "CAD"));
+            config.filterCriteria = criteria;
+
+            Map<String, Object> providers = (Map<String, Object>) root.getOrDefault("providers", Map.of());
+            Map<String, Boolean> toggles = new HashMap<>();
+            providers.forEach((name, value) -> {
+                if (value instanceof Boolean enabled) {
+                    toggles.put(name, enabled);
+                }
+            });
+            config.providerToggles = Map.copyOf(toggles);
+
+            Map<String, Object> notifications = (Map<String, Object>) root.getOrDefault("notifications", Map.of());
+
+            Map<String, Object> console = (Map<String, Object>) notifications.getOrDefault("console", Map.of());
+            config.consoleEnabled = getBoolean(console, "enabled", true);
+
+            Map<String, Object> discord = (Map<String, Object>) notifications.getOrDefault("discord", Map.of());
+            config.discordEnabled = getBoolean(discord, "enabled", false);
+            config.discordWebhookUrl = getString(discord, "webhook_url", "");
+            config.discordMentionUserId = getString(discord, "mention_user_id", "");
+
+            Map<String, Object> email = (Map<String, Object>) notifications.getOrDefault("email", Map.of());
+            config.emailEnabled = getBoolean(email, "enabled", false);
+            config.smtpHost = getString(email, "smtp_host", "smtp.gmail.com");
+            config.smtpPort = getInt(email, "smtp_port", 587);
+            config.smtpUsername = getString(email, "username", "");
+            config.smtpPassword = getString(email, "password", "");
+            config.emailFrom = getString(email, "from", "");
+            config.emailTo = getString(email, "to", "");
+
+            Map<String, Object> database = (Map<String, Object>) root.getOrDefault("database", Map.of());
+            config.dbPath = getString(database, "path", "jobs.db");
+            config.retentionDays = getInt(database, "retention_days", 365);
+
+            log.info("Configuration loaded from {}", filePath);
+
+        } catch (IOException e) {
+            log.error("Failed to load config from {}: {}", filePath, e.getMessage());
+            throw new RuntimeException("Config load failed", e);
+        }
+
+        return config;
+    }
+
+    static String resolve(String value) {
+        if (value == null || value.indexOf("${") < 0) return value;
+
+        Matcher matcher = PLACEHOLDER.matcher(value);
+        StringBuilder resolved = new StringBuilder();
+
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            String fallback = matcher.group(2);
+            String fromEnv = System.getenv(name);
+
+            String replacement;
+            if (fromEnv != null && !fromEnv.isEmpty()) {
+                replacement = fromEnv;
+            } else if (fallback != null) {
+                replacement = fallback;
+            } else {
+                log.warn("Environment variable {} is not set — using an empty value", name);
+                replacement = "";
+            }
+
+            matcher.appendReplacement(resolved, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(resolved);
+
+        return resolved.toString();
+    }
+
+    private static String getString(Map<String, Object> map, String key, String defaultVal) {
+        Object val = map.get(key);
+        return val != null ? resolve(val.toString()) : defaultVal;
+    }
+
+    private static int getInt(Map<String, Object> map, String key, int defaultVal) {
+        Object val = map.get(key);
+        return val instanceof Number ? ((Number) val).intValue() : defaultVal;
+    }
+
+    private static boolean getBoolean(Map<String, Object> map, String key, boolean defaultVal) {
+        Object val = map.get(key);
+        return val instanceof Boolean ? (Boolean) val : defaultVal;
+    }
+
+    public boolean isProviderEnabled(String name, boolean defaultVal) {
+        return providerToggles.getOrDefault(name, defaultVal);
+    }
+
+    public String getAdzunaAppId() { return adzunaAppId; }
+    public String getAdzunaAppKey() { return adzunaAppKey; }
+    public String getAdzunaCountry() { return adzunaCountry; }
+    public String getJSearchApiKey() { return jSearchApiKey; }
+    public String getSearchQuery() { return searchQuery; }
+    public String getSearchLocation() { return searchLocation; }
+    public int getPollIntervalMinutes() { return pollIntervalMinutes; }
+    public FilterCriteria getFilterCriteria() { return filterCriteria; }
+    public boolean isConsoleEnabled() { return consoleEnabled; }
+    public boolean isDiscordEnabled() { return discordEnabled; }
+    public String getDiscordWebhookUrl() { return discordWebhookUrl; }
+    public String getDiscordMentionUserId() { return discordMentionUserId; }
+    public boolean isEmailEnabled() { return emailEnabled; }
+    public String getSmtpHost() { return smtpHost; }
+    public int getSmtpPort() { return smtpPort; }
+    public String getSmtpUsername() { return smtpUsername; }
+    public String getSmtpPassword() { return smtpPassword; }
+    public String getEmailFrom() { return emailFrom; }
+    public String getEmailTo() { return emailTo; }
+    public String getDbPath() { return dbPath; }
+    public int getRetentionDays() { return retentionDays; }
+}

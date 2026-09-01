@@ -1,0 +1,64 @@
+apis:
+  adzuna:
+    app_id: "${JOBHUNTER_ADZUNA_APP_ID}"
+    app_key: "${JOBHUNTER_ADZUNA_APP_KEY}"
+    country: "ca"
+
+  jsearch:
+    api_key: "${JOBHUNTER_JSEARCH_API_KEY}"
+
+search:
+  query: "software developer"
+  location: "Montreal"
+  poll_interval_minutes: 240
+
+providers:
+  adzuna: true
+  jsearch: true
+  jsearch_linkedin: true
+  arbeitnow: false
+  remotive: false
+  indeed: false
+
+filters:
+  required_keywords:
+    - "intern"
+    - "internship"
+    - "stage"
+    - "stagiaire"
+    - "co-op"
+  keywords:
+    - "software"
+    - "developer"
+    - "java"
+    - "python"
+  exclude_keywords:
+    - "senior"
+    - "principal"
+    - "director"
+  locations:
+    - "Montreal"
+    - "Remote"
+    - "Canada"
+
+notifications:
+  console:
+    enabled: true
+
+  discord:
+    enabled: false
+    webhook_url: "${JOBHUNTER_DISCORD_WEBHOOK_URL}"
+    mention_user_id: "${JOBHUNTER_DISCORD_USER_ID:-}"
+
+  email:
+    enabled: false
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    username: "${JOBHUNTER_SMTP_USERNAME:-}"
+    password: "${JOBHUNTER_SMTP_PASSWORD:-}"
+    from: "${JOBHUNTER_SMTP_USERNAME:-}"
+    to: "${JOBHUNTER_SMTP_USERNAME:-}"
+
+database:
+  path: "jobs.db"
+  retention_days: 365
