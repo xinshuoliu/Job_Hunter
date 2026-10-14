@@ -106,7 +106,7 @@ class JobDeduplicationTest {
         Job job = new Job();
         job.setTitle("Developer");
 
-        assertDoesNotThrow(job::deduplicationKey);
+        assertDoesNotThrow(() -> job.deduplicationKey());
         assertNotNull(job.deduplicationKey());
     }
 }

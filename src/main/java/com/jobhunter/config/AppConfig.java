@@ -48,7 +48,13 @@ public class AppConfig {
     private List<String> simplifyUrls = List.of();
     private int simplifyMaxAgeDays;
 
+    private Map<String, Integer> scoringWeights = Map.of();
+    private Integer minScore;
+    private int dedupWindowDays;
+
     private int statusIntervalHours;
+    private boolean digestMode;
+    private int digestHour;
     private boolean consoleEnabled;
     private boolean discordEnabled;
     private String discordWebhookUrl;
@@ -97,7 +103,22 @@ public class AppConfig {
             }
             criteria.setCurrency(getString(filters, "currency", "CAD"));
             criteria.setExcludeScope(parseExcludeScope(getString(filters, "exclude_scope", "title")));
+            criteria.setExcludeLocations(getStringList(filters, "exclude_locations"));
+            criteria.setExcludeCompanies(getStringList(filters, "exclude_companies"));
+            if (filters.get("max_age_days") instanceof Number maxAge) {
+                criteria.setMaxAgeDays(maxAge.intValue());
+            }
+            criteria.setRejectPastYears(getBoolean(filters, "reject_past_years", true));
             config.filterCriteria = criteria;
+
+            Map<String, Object> scoring = (Map<String, Object>) root.getOrDefault("scoring", Map.of());
+            config.scoringWeights = parseWeights(scoring.get("weights"));
+            if (scoring.get("min_score") instanceof Number minScore) {
+                config.minScore = minScore.intValue();
+            }
+
+            Map<String, Object> dedup = (Map<String, Object>) root.getOrDefault("dedup", Map.of());
+            config.dedupWindowDays = getInt(dedup, "window_days", 120);
 
             Map<String, Object> providers = (Map<String, Object>) root.getOrDefault("providers", Map.of());
             Map<String, Boolean> toggles = new HashMap<>();
@@ -123,11 +144,13 @@ public class AppConfig {
             config.simplifyUrls = simplifyUrls.isEmpty() ? List.of(DEFAULT_SIMPLIFY_URL) : simplifyUrls;
             config.simplifyMaxAgeDays = getInt(simplify, "max_age_days", 45);
 
-            Map<String, Object> notifications =(Map<String, Object>) root.getOrDefault("notifications", Map.of());
+            Map<String, Object> notifications = (Map<String, Object>) root.getOrDefault("notifications", Map.of());
 
             config.statusIntervalHours = getInt(notifications, "status_interval_hours", 24);
+            config.digestMode = "digest".equalsIgnoreCase(getString(notifications, "mode", "instant").trim());
+            config.digestHour = Math.floorMod(getInt(notifications, "digest_hour", 18), 24);
 
-            Map<String, Object> console =(Map<String, Object>) notifications.getOrDefault("console", Map.of());
+            Map<String, Object> console = (Map<String, Object>) notifications.getOrDefault("console", Map.of());
             config.consoleEnabled = getBoolean(console, "enabled", true);
 
             Map<String, Object> discord = (Map<String, Object>) notifications.getOrDefault("discord", Map.of());
@@ -203,6 +226,27 @@ public class AppConfig {
         return Collections.unmodifiableMap(boards);
     }
 
+    static Map<String, Integer> parseWeights(Object value) {
+        Map<String, Integer> weights = new LinkedHashMap<>();
+        if (value instanceof Map<?, ?> map) {
+            map.forEach((term, weight) -> {
+                if (term != null && weight instanceof Number number) {
+                    weights.put(term.toString(), number.intValue());
+                } else {
+                    log.warn("Ignoring scoring weight '{}': {} is not a number", term, weight);
+                }
+            });
+        }
+        return Collections.unmodifiableMap(weights);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> getStringList(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (!(value instanceof List<?> list)) return List.of();
+        return ((List<Object>) list).stream().filter(item -> item != null).map(Object::toString).toList();
+    }
+
     static ExcludeScope parseExcludeScope(String value) {
         try {
             return ExcludeScope.valueOf(value.trim().toUpperCase(Locale.ROOT));
@@ -243,10 +287,15 @@ public class AppConfig {
     public Map<String, String> getLeverBoards() { return leverBoards; }
     public Map<String, String> getAshbyBoards() { return ashbyBoards; }
     public List<String> getBoardLocations() { return boardLocations; }
-    public List<String> getSimplifyUrls(){ return simplifyUrls; }
+    public List<String> getSimplifyUrls() { return simplifyUrls; }
     public int getSimplifyMaxAgeDays() { return simplifyMaxAgeDays; }
-    public int getStatusIntervalHours(){ return statusIntervalHours; }
-    public boolean isConsoleEnabled(){ return consoleEnabled; }
+    public int getStatusIntervalHours() { return statusIntervalHours; }
+    public boolean isDigestMode() { return digestMode; }
+    public int getDigestHour() { return digestHour; }
+    public Map<String, Integer> getScoringWeights() { return scoringWeights; }
+    public Integer getMinScore() { return minScore; }
+    public int getDedupWindowDays() { return dedupWindowDays; }
+    public boolean isConsoleEnabled() { return consoleEnabled; }
     public boolean isDiscordEnabled() { return discordEnabled; }
     public String getDiscordWebhookUrl() { return discordWebhookUrl; }
     public String getDiscordMentionUserId() { return discordMentionUserId; }

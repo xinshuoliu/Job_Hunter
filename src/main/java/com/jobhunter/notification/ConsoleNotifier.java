@@ -33,7 +33,11 @@ public class ConsoleNotifier implements Notifier {
                         job.getSalaryMax() != null ? String.format("$%.0f", job.getSalaryMax()) : "?");
             }
 
-            System.out.printf("   Link:     %s%n", job.getUrl() != null ? job.getUrl() : "N/A");
+            if (job.getScore() != null) {
+                System.out.printf("   Score:    %d%n", job.getScore());
+            }
+
+            System.out.printf("   Link:     %s%n",job.getUrl() != null ? job.getUrl() : "N/A");
             System.out.printf("   Source:   %s%n", job.getSource());
             System.out.println();
         }

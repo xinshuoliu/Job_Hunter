@@ -64,8 +64,36 @@ filters:
     - "Montreal"
     - "Remote"
     - "Canada"
+  exclude_locations:
+    - "Ottawa"
+    - "Toronto"
+    - "Kanata"
+    - "Vancouver"
+  exclude_companies:
+    - "hanzilla"
+    - "Jobtailor"
+  max_age_days: 60
+  reject_past_years: true
+
+scoring:
+  min_score: 0
+  weights:
+    "java": 3
+    "backend": 2
+    "full stack": 2
+    "python": 2
+    "spring": 2
+    "cloud": 1
+    "qa": -2
+    "technical writer": -10
+    "legal": -10
+
+dedup:
+  window_days: 120
 
 notifications:
+  mode: "instant"
+  digest_hour: 18
   status_interval_hours: 24
 
   console:

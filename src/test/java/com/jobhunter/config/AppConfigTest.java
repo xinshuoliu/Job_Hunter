@@ -67,6 +67,21 @@ class AppConfigTest {
         assertEquals(List.of("b", "a"), List.copyOf(AppConfig.parseBoards(List.of("b", "a")).keySet()));
     }
 
+    @Test
+    @DisplayName("Scoring weights keep their order and skip non-numeric values")
+    void parsesWeights() {
+        Map<String, Object> raw = new java.util.LinkedHashMap<>();
+        raw.put("java", 3);
+        raw.put("technical writer", -10);
+        raw.put("broken", "high");
+
+        Map<String, Integer> weights = AppConfig.parseWeights(raw);
+
+        assertEquals(List.of("java", "technical writer"), List.copyOf(weights.keySet()));
+        assertEquals(-10, weights.get("technical writer"));
+        assertEquals(Map.of(), AppConfig.parseWeights(null));
+    }
+
     private void assumeEnvironmentHasPath(String path) {
         if (path == null || path.isEmpty()) {
             fail("PATH is expected to be set in the test environment");

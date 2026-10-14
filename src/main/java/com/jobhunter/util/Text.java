@@ -1,7 +1,10 @@
 package com.jobhunter.util;
 
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public final class Text {
@@ -10,6 +13,11 @@ public final class Text {
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
     private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    private static final Pattern DIGITS = Pattern.compile("\\d+");
+    private static final Set<String> COMPANY_SUFFIXES = Set.of(
+            "inc", "incorporated", "ltd", "limited", "llc", "llp", "lp", "corp", "corporation", "co",
+            "company", "plc", "gmbh", "sa", "se", "ag", "nv", "bv", "ulc", "solutions", "technologies",
+            "technology", "group", "holdings", "canada", "ltee", "the");
 
     private Text() {
     }
@@ -20,6 +28,17 @@ public final class Text {
         String withoutAccents = DIACRITICS.matcher(decomposed).replaceAll("");
         String lower = withoutAccents.toLowerCase(Locale.ROOT);
         return NON_ALPHANUMERIC.matcher(lower).replaceAll(" ").trim();
+    }
+
+    public static String companyKey(String company) {
+        String normalized = normalize(company);
+        List<String> kept = new ArrayList<>();
+        for (String token : normalized.split(" ")) {
+            if (!token.isEmpty() && !COMPANY_SUFFIXES.contains(token) && !DIGITS.matcher(token).matches()) {
+                kept.add(token);
+            }
+        }
+        return kept.isEmpty() ? normalized : String.join(" ", kept);
     }
 
     public static boolean containsTerm(String normalizedText, String term) {

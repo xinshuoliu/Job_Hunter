@@ -89,6 +89,7 @@ public class EmailNotifier implements Notifier {
                 if (job.getSalaryMax() != null) html.append(String.format("$%.0f", job.getSalaryMax()));
                 html.append("</p>");
             }
+            if (job.getScore() != null) html.append("<p><strong>Score:</strong> ").append(job.getScore()).append("</p>");
             html.append("<p style='color: #888; font-size: 12px;'>Source: ").append(job.getSource()).append("</p>");
             html.append("</div>");
         }

@@ -77,6 +77,26 @@ The process runs continuously, polling every `search.poll_interval_minutes`. Eac
 additionally has its own minimum interval, tracked in SQLite, so restarts never re-hammer the
 APIs. The image does not bake in `config.yml` — mount it (docker compose already does).
 
+To run from cron, Windows Task Scheduler or a CI job instead, do a single cycle and exit:
+
+```bash
+java -jar target/job-hunter-1.0-SNAPSHOT.jar --config config.yml once
+```
+
+### 4. Track applications
+
+Every stored job has an application status. The CLI reads the same database:
+
+```bash
+java -jar target/job-hunter-1.0-SNAPSHOT.jar list                    # newest 30 jobs
+java -jar target/job-hunter-1.0-SNAPSHOT.jar list --status applied   # filter by status
+java -jar target/job-hunter-1.0-SNAPSHOT.jar mark 42 applied         # 42 = number shown by list
+java -jar target/job-hunter-1.0-SNAPSHOT.jar stats
+```
+
+Statuses are `new`, `interested`, `applied`, `interview`, `offer`, `rejected` and `ignored`.
+Jobs marked `interested`, `applied`, `interview` or `offer` are never pruned by `retention_days`.
+
 ## Configuration
 
 See `config.yml` for all options. Key sections:
@@ -87,8 +107,10 @@ See `config.yml` for all options. Key sections:
 | `search` | What to search for, where, and how often |
 | `providers` | Which job sources to enable |
 | `boards` | Company career boards and community internship lists to watch |
-| `filters` | Keyword matching, exclusions, salary, location |
-| `notifications` | Enable/configure Console, Discord, or Email alerts |
+| `filters` | Keyword matching, exclusions, salary, location, posting age |
+| `scoring` | Keyword weights that rank matches and an optional `min_score` cutoff |
+| `dedup` | How far back to look for reworded reposts of the same job |
+| `notifications` | Instant or daily-digest delivery to Console, Discord, or Email |
 | `database` | SQLite path and `retention_days` for pruning old postings |
 
 ### Company boards and internship lists
@@ -130,12 +152,49 @@ terms such as `co-op` or `new grad` work too. `required_keywords` and, by defaul
 `exclude_keywords` only look at the job title; set `exclude_scope: "all"` to also scan the
 description and company.
 
-When a cycle finds nothing new, a short status message is sent at most once every
-`notifications.status_interval_hours` (default 24, `0` disables it).
+### Cutting noise
 
-Jobs are deduplicated on normalized title + company, so the same posting reported by two
-providers with different location spellings is only announced once. A posting is only marked
-as notified once every channel confirms delivery; anything that failed is retried next cycle.
+| Option | Effect |
+|--------|--------|
+| `filters.max_age_days` | Drop postings published more than N days ago (undated postings pass) |
+| `filters.reject_past_years` | Drop titles that only mention past years, e.g. "Summer 2025" (default `true`) |
+| `filters.exclude_locations` | Drop jobs whose **title** names one of these places, unless it also names one of your `locations`. Catches aggregators that tag an Ottawa job as "Montreal" |
+| `filters.exclude_companies` | Drop reposts from job boards and other unwanted employers |
+
+### Ranking with scores
+
+`scoring.weights` assigns points to terms. A term found in the title earns its full weight; one
+found only in the description earns half. Negative weights push unwanted roles down, and jobs
+scoring below `scoring.min_score` are dropped. Notifications list the best matches first and show
+each score. Leave `weights` empty to turn scoring off.
+
+```yaml
+scoring:
+  min_score: 0
+  weights: { "java": 3, "backend": 2, "technical writer": -10 }
+```
+
+### Duplicates
+
+The same posting often appears on several sources, and reposts are reworded. Two jobs are
+treated as one when their companies match after dropping legal suffixes ("Kinaxis Inc." =
+"Kinaxis") and their titles share at least 80% of their meaningful words, ignoring seasons,
+locations, work mode and the company name. Titles naming different terms ("Fall 2026" vs
+"Winter 2027") or different requisition numbers always stay separate. New postings are compared
+with everything stored in the last `dedup.window_days` days (default 120).
+
+### Delivery
+
+With `notifications.mode: "instant"` (the default) new jobs are sent as soon as they are found.
+With `mode: "digest"`, jobs are collected and sent once a day, in one message, on the first cycle
+after `digest_hour` (local time, default 18).
+
+When there is nothing new, a short status message is sent at most once every
+`notifications.status_interval_hours` (default 24, `0` disables it). A posting is only marked as
+notified once every channel confirms delivery; anything that failed is retried next cycle.
+
+Upgrading from an older version migrates `jobs.db` automatically; a copy of the previous file
+is kept next to it as `jobs.db.v<old-version>.bak`.
 
 ## Running Tests
 

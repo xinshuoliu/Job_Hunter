@@ -8,6 +8,7 @@ target/
 .settings/
 
 *.db
+*.db.*.bak
 logs/
 data/
 

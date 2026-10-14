@@ -22,14 +22,34 @@ public class Job {
     private Instant postedAt;
     private Instant fetchedAt;
     private List<String> additionalUrls;
+    private Long rowId;
+    private Integer score;
+    private ApplicationStatus status = ApplicationStatus.NEW;
+    private Instant statusUpdatedAt;
 
     public Job() {
         this.fetchedAt = Instant.now();
     }
 
     public String deduplicationKey() {
-        return Text.normalize(title) + "|" + Text.normalize(company);
+        return deduplicationKey(title, company);
     }
+
+    public static String deduplicationKey(String title, String company) {
+        return Text.normalize(title) + "|" + Text.companyKey(company);
+    }
+
+    public Long getRowId() { return rowId; }
+    public void setRowId(Long rowId) { this.rowId = rowId; }
+
+    public Integer getScore() { return score; }
+    public void setScore(Integer score) { this.score = score; }
+
+    public ApplicationStatus getStatus() { return status; }
+    public void setStatus(ApplicationStatus status) { this.status = status; }
+
+    public Instant getStatusUpdatedAt() { return statusUpdatedAt; }
+    public void setStatusUpdatedAt(Instant statusUpdatedAt) { this.statusUpdatedAt = statusUpdatedAt; }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

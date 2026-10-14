@@ -2,6 +2,7 @@ package com.jobhunter.scheduler;
 
 import com.jobhunter.api.JobProvider;
 import com.jobhunter.filter.JobFilter;
+import com.jobhunter.filter.JobScorer;
 import com.jobhunter.model.FilterCriteria;
 import com.jobhunter.model.Job;
 import com.jobhunter.notification.Notifier;
@@ -12,8 +13,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -121,15 +126,105 @@ class JobSchedulerTest {
     @Test
     @DisplayName("A status interval of zero disables status messages")
     void zeroStatusIntervalDisablesStatus() {
-        new JobScheduler(List.of(provider("adzuna")), new JobFilter(new FilterCriteria()), repository,
-                List.of(notifier), "software developer", "Montreal", 0, 0).runCycle();
+        scheduler(List.of(provider("adzuna")), SETTINGS.withStatusIntervalHours(0)).runCycle();
 
         assertTrue(notifier.statusMessages.isEmpty());
     }
 
+    @Test
+    @DisplayName("Reworded reposts of the same job are only announced once")
+    void fuzzyDuplicatesAcrossCyclesAreSkipped() {
+        scheduler(List.of(provider("jsearch",
+                job("jsearch-1", "jsearch", "Software Engineer Intern, Backend (Summer 2027)", "Lyft", "Montreal, CA")))).runCycle();
+        scheduler(List.of(provider("simplify",
+                job("simplify-1", "simplify", "Software Engineer Intern - Backend Development at Lyft", "Lyft, Inc.", "Montreal, QC")))).runCycle();
+
+        assertEquals(1, notifier.deliveredJobs.size());
+        assertEquals(1, repository.count());
+    }
+
+    @Test
+    @DisplayName("Reworded duplicates in one cycle are merged and keep both links")
+    void fuzzyDuplicatesWithinCycleAreMerged() {
+        Job first = job("jsearch-1", "jsearch", "Core Algorithms Software Developer Intern", "Kinaxis", "Montreal");
+        Job second = job("adzuna-1", "adzuna", "Co-op/Intern Software Developer, Core Algorithms", "Kinaxis Inc.", "Montreal");
+
+        scheduler(List.of(provider("mixed", first, second))).runCycle();
+
+        assertEquals(1, notifier.deliveredJobs.size());
+        Job delivered = notifier.deliveredJobs.get(0);
+        assertEquals("jsearch · adzuna", delivered.getSource());
+        assertEquals(List.of("https://example.com/adzuna-1"), delivered.getAdditionalUrls());
+    }
+
+    @Test
+    @DisplayName("The same role for a different term is treated as a new posting")
+    void differentTermsAreNotDuplicates() {
+        scheduler(List.of(provider("adzuna",
+                job("adzuna-1", "adzuna", "Intern, Software (S-02-08) Fall 2026", "Matrox", "Montreal"),
+                job("adzuna-2", "adzuna", "Intern, Software (S-02-08) Winter 2027", "Matrox", "Montreal")))).runCycle();
+
+        assertEquals(2, notifier.deliveredJobs.size());
+    }
+
+    @Test
+    @DisplayName("Scored jobs below min_score are dropped and the rest are sent best first")
+    void scoringFiltersAndOrders() {
+        JobScorer scorer = new JobScorer(Map.of("java", 3, "backend", 2, "technical writer", -10), 1);
+        Job writer = job("a-1", "adzuna", "Technical Writer Intern", "Acme", "Montreal");
+        Job java = job("a-2", "adzuna", "Java Backend Intern", "Globex", "Montreal");
+        Job backend = job("a-3", "adzuna", "Backend Intern", "Initech", "Montreal");
+
+        new JobScheduler(List.of(provider("adzuna", writer, backend, java)), new JobFilter(new FilterCriteria()),
+                scorer, repository, List.of(notifier), SETTINGS, CLOCK).runCycle();
+
+        assertEquals(List.of("Java Backend Intern", "Backend Intern"),
+                notifier.deliveredJobs.stream().map(Job::getTitle).toList());
+        assertEquals(5, notifier.deliveredJobs.get(0).getScore());
+    }
+
+    @Test
+    @DisplayName("Digest mode queues jobs until the digest hour, then sends them once")
+    void digestModeWaitsForDigestHour() {
+        JobScheduler.Settings digest = SETTINGS.withDigest(18);
+        Job posting = job("adzuna-1", "adzuna", "Java Intern", "Acme", "Montreal");
+
+        scheduler(List.of(provider("adzuna", posting)), digest, at("2026-10-13T09:00:00")).runCycle();
+        assertEquals(0, notifier.notifyCalls, "nothing should be sent before the digest hour");
+        assertEquals(1, repository.getUnnotifiedJobs().size());
+
+        scheduler(List.of(), digest, at("2026-10-13T18:30:00")).runCycle();
+        assertEquals(1, notifier.notifyCalls);
+        assertEquals(0, repository.getUnnotifiedJobs().size());
+
+        scheduler(List.of(provider("adzuna2", job("adzuna-2", "adzuna", "Python Intern", "Globex", "Montreal"))),
+                digest, at("2026-10-13T22:00:00")).runCycle();
+        assertEquals(1, notifier.notifyCalls, "only one digest per day");
+
+        scheduler(List.of(), digest, at("2026-10-14T18:05:00")).runCycle();
+        assertEquals(2, notifier.notifyCalls);
+    }
+
+    private static final JobScheduler.Settings SETTINGS =
+            JobScheduler.Settings.defaults("software developer", "Montreal");
+    private static final Clock CLOCK = at("2026-10-13T12:00:00");
+
+    private static Clock at(String localDateTime) {
+        ZoneId zone = ZoneId.of("America/Montreal");
+        return Clock.fixed(LocalDateTime.parse(localDateTime).atZone(zone).toInstant(), zone);
+    }
+
     private JobScheduler scheduler(List<JobProvider> providers) {
-        return new JobScheduler(providers, new JobFilter(new FilterCriteria()), repository,
-                List.of(notifier), "software developer", "Montreal", 0);
+        return scheduler(providers, SETTINGS);
+    }
+
+    private JobScheduler scheduler(List<JobProvider> providers, JobScheduler.Settings settings) {
+        return scheduler(providers, settings, CLOCK);
+    }
+
+    private JobScheduler scheduler(List<JobProvider> providers, JobScheduler.Settings settings, Clock clock) {
+        return new JobScheduler(providers, new JobFilter(new FilterCriteria(), clock), JobScorer.disabled(),
+                repository, List.of(notifier), settings, clock);
     }
 
     private static JobProvider provider(String name, Job... jobs) {

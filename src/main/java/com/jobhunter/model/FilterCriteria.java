@@ -13,8 +13,24 @@ public class FilterCriteria {
     private Double minSalary;
     private String currency;
     private ExcludeScope excludeScope = ExcludeScope.TITLE;
+    private List<String> excludeLocations;
+    private List<String> excludeCompanies;
+    private Integer maxAgeDays;
+    private boolean rejectPastYears = true;
 
     public FilterCriteria() {}
+
+    public List<String> getExcludeLocations() { return excludeLocations; }
+    public void setExcludeLocations(List<String> excludeLocations) { this.excludeLocations = excludeLocations; }
+
+    public List<String> getExcludeCompanies() { return excludeCompanies; }
+    public void setExcludeCompanies(List<String> excludeCompanies) { this.excludeCompanies = excludeCompanies; }
+
+    public Integer getMaxAgeDays() { return maxAgeDays; }
+    public void setMaxAgeDays(Integer maxAgeDays) { this.maxAgeDays = maxAgeDays; }
+
+    public boolean isRejectPastYears() { return rejectPastYears; }
+    public void setRejectPastYears(boolean rejectPastYears) { this.rejectPastYears = rejectPastYears; }
 
     public List<String> getRequiredKeywords() { return requiredKeywords; }
     public void setRequiredKeywords(List<String> requiredKeywords) { this.requiredKeywords = requiredKeywords; }

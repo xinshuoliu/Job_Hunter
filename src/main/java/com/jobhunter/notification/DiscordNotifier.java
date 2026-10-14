@@ -93,6 +93,7 @@ public class DiscordNotifier implements Notifier {
                 if (job.getSalaryMax() != null) desc.append(String.format("$%.0f", job.getSalaryMax()));
                 desc.append("\n");
             }
+            if (job.getScore() != null) desc.append("**Score:** ").append(job.getScore()).append("\n");
             desc.append("**Source:** ").append(job.getSource());
             if (job.getAdditionalUrls() != null && !job.getAdditionalUrls().isEmpty()) {
                 desc.append("\n**Also on:** ");

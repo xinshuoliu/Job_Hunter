@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -171,6 +174,68 @@ class JobFilterTest {
         job.setDescription("You will pair with senior engineers.");
         assertFalse(filter.matches(job));
     }
+
+    @Test
+    @DisplayName("Postings older than max_age_days are rejected, undated ones pass")
+    void rejectsStalePostings() {
+        criteria.setMaxAgeDays(30);
+        JobFilter filter = new JobFilter(criteria, NOW);
+
+        Job fresh = createJob("Java Intern", "Acme", "Montreal");
+        fresh.setPostedAt(Instant.parse("2026-10-01T00:00:00Z"));
+        Job stale = createJob("Java Intern", "Acme", "Montreal");
+        stale.setPostedAt(Instant.parse("2026-08-01T00:00:00Z"));
+        Job undated = createJob("Java Intern", "Acme", "Montreal");
+
+        assertTrue(filter.matches(fresh));
+        assertFalse(filter.matches(stale));
+        assertTrue(filter.matches(undated));
+    }
+
+    @Test
+    @DisplayName("Titles that only name past years are rejected")
+    void rejectsPastYearTitles() {
+        JobFilter filter = new JobFilter(criteria, NOW);
+
+        assertFalse(filter.matches(createJob("Mobile Engineering Intern - Summer 2025", "Mercury", "Montreal")));
+        assertTrue(filter.matches(createJob("Intern, Software Fall 2026", "Matrox", "Montreal")));
+        assertTrue(filter.matches(createJob("Web Developer Internship (2025-2027)", "Workland", "Montreal")));
+        assertTrue(filter.matches(createJob("Software Intern", "Acme", "Montreal")));
+    }
+
+    @Test
+    @DisplayName("Past-year rejection can be turned off")
+    void pastYearRejectionCanBeDisabled() {
+        criteria.setRejectPastYears(false);
+        JobFilter filter = new JobFilter(criteria, NOW);
+
+        assertTrue(filter.matches(createJob("Mobile Engineering Intern - Summer 2025", "Mercury", "Montreal")));
+    }
+
+    @Test
+    @DisplayName("A title naming an excluded city is rejected unless it also names a wanted one")
+    void rejectsExcludedLocationsInTitle() {
+        criteria.setLocations(List.of("Montreal"));
+        criteria.setExcludeLocations(List.of("Ottawa", "Toronto"));
+        JobFilter filter = new JobFilter(criteria, NOW);
+
+        assertFalse(filter.matches(createJob("Lumentum Embedded Software Intern Ottawa", "Lumentum", "Montreal, CA")));
+        assertTrue(filter.matches(createJob("Software Intern - Montreal or Toronto", "Acme", "Montreal, CA")));
+        assertTrue(filter.matches(createJob("Software Intern", "Acme", "Montreal, CA; Toronto")));
+    }
+
+    @Test
+    @DisplayName("Blocklisted companies are rejected")
+    void rejectsExcludedCompanies() {
+        criteria.setExcludeCompanies(List.of("hanzilla", "Wayne State University"));
+        JobFilter filter = new JobFilter(criteria, NOW);
+
+        assertFalse(filter.matches(createJob("Front-End Developer Intern at Coveo", "jobs.hanzilla.co - Jobboard", "Montreal")));
+        assertFalse(filter.matches(createJob("Summer Internship at Uber", "Wayne State University", "Montreal")));
+        assertTrue(filter.matches(createJob("Frontend Developer Intern", "Coveo", "Montreal")));
+    }
+
+    private static final Clock NOW = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
 
     private Job createJob(String title, String company, String location) {
         Job job = new Job();
