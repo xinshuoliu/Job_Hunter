@@ -1,0 +1,54 @@
+[
+  {
+    "source": "Simplify",
+    "category": "Software",
+    "company_name": "Squarepoint Capital",
+    "id": "active-recent",
+    "title": "Software Developer Intern",
+    "active": true,
+    "is_visible": true,
+    "terms": ["Summer 2027", "Fall 2027"],
+    "date_posted": 1791849600,
+    "url": "https://example.com/squarepoint",
+    "locations": ["Montreal, QC, Canada", "NYC"]
+  },
+  {
+    "source": "Simplify",
+    "category": "Software",
+    "company_name": "Closed Co",
+    "id": "inactive",
+    "title": "Software Intern",
+    "active": false,
+    "is_visible": true,
+    "terms": ["Summer 2027"],
+    "date_posted": 1791849600,
+    "url": "https://example.com/closed",
+    "locations": ["Montreal, QC, Canada"]
+  },
+  {
+    "source": "Simplify",
+    "category": "Software",
+    "company_name": "Hidden Co",
+    "id": "hidden",
+    "title": "Software Intern",
+    "active": true,
+    "is_visible": false,
+    "terms": [],
+    "date_posted": 1791849600,
+    "url": "https://example.com/hidden",
+    "locations": ["Remote in Canada"]
+  },
+  {
+    "source": "Simplify",
+    "category": "AI/ML/Data",
+    "company_name": "Old Co",
+    "id": "stale",
+    "title": "ML Intern",
+    "active": true,
+    "is_visible": true,
+    "terms": ["Summer 2026"],
+    "date_posted": 1771226133,
+    "url": "https://example.com/old",
+    "locations": ["Toronto, ON, Canada"]
+  }
+]

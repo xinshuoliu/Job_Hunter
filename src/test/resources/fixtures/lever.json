@@ -1,0 +1,21 @@
+[
+  {
+    "id": "a2e76a1c-fda4-4ede-b99f-95b63e2bc785",
+    "text": "Stagiaire en développement logiciel",
+    "categories": { "commitment": "Stage", "location": "Montréal", "team": "Dev", "allLocations": ["Montréal", "Québec"] },
+    "workplaceType": "hybrid",
+    "hostedUrl": "https://jobs.lever.co/mirego/a2e76a1c-fda4-4ede-b99f-95b63e2bc785",
+    "createdAt": 1791220218982,
+    "descriptionPlain": "Rejoins l'équipe mobile.",
+    "salaryRange": { "currency": "CAD", "interval": "per-year-salary", "min": 45000, "max": 55000 }
+  },
+  {
+    "id": "b0000000-0000-0000-0000-000000000000",
+    "text": "Business Development Manager",
+    "categories": { "location": "Toronto" },
+    "workplaceType": "remote",
+    "hostedUrl": "https://jobs.lever.co/mirego/b0000000",
+    "createdAt": 1791220218982,
+    "salaryRange": { "currency": "CAD", "interval": "per-hour-wage", "min": 30, "max": 40 }
+  }
+]

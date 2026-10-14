@@ -8,8 +8,9 @@ A multi-source job posting aggregator that fetches listings from multiple APIs, 
 
 ```
 ┌─────────────┐  ┌──────────────┐
-│   Adzuna    │  │  Arbeitnow   │   ← API Providers (add more by implementing JobProvider)
-│   API       │  │  API         │
+│ Adzuna,     │  │ Greenhouse,  │   ← Providers (add more by implementing JobProvider)
+│ JSearch ... │  │ Lever, Ashby,│
+│ (search)    │  │ Simplify     │
 └──────┬──────┘  └──────┬───────┘
        │                │
        └───────┬────────┘
@@ -85,9 +86,43 @@ See `config.yml` for all options. Key sections:
 | `apis` | API credentials for each provider |
 | `search` | What to search for, where, and how often |
 | `providers` | Which job sources to enable |
+| `boards` | Company career boards and community internship lists to watch |
 | `filters` | Keyword matching, exclusions, salary, location |
 | `notifications` | Enable/configure Console, Discord, or Email alerts |
 | `database` | SQLite path and `retention_days` for pruning old postings |
+
+### Company boards and internship lists
+
+Besides the search APIs, Job Hunter can read company career boards directly. These public
+endpoints need no API key and often list postings before the aggregators pick them up:
+
+```yaml
+boards:
+  greenhouse: [workleap]
+  lever: [mirego, plusgrade]
+  ashby:
+    - cohere
+    - valence: "Valence Labs"
+```
+
+The slug is the company's segment in its careers URL (`job-boards.greenhouse.io/<slug>`,
+`jobs.lever.co/<slug>`, `jobs.ashbyhq.com/<slug>`). An entry can optionally map the slug to a
+display name, which keeps cross-source deduplication accurate when the slug differs from the
+company name other providers report.
+
+The `simplify` provider reads the community-maintained
+[SimplifyJobs](https://github.com/SimplifyJobs) internship list. Only active listings posted in
+the last `max_age_days` days are considered, and your normal filters still apply.
+
+Unlike the search APIs, boards and the Simplify list are not scoped to `search.location`, so a
+broad `filters.locations` entry such as `Canada` or `Remote` would let through postings from
+across the country or the US. `boards.locations` narrows only these sources before the regular
+filters run:
+
+```yaml
+boards:
+  locations: ["Montreal", "Remote in Canada", "Canada - Remote"]
+```
 
 Keywords and locations match whole words, ignoring case and accents, so `intern` matches
 "Software Intern" but not "Internal Tools", and `Montreal` matches "Montréal, QC". Multi-word

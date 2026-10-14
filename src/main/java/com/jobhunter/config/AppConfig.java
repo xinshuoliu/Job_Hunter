@@ -9,7 +9,9 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -20,7 +22,10 @@ public class AppConfig {
 
     private static final Logger log = LoggerFactory.getLogger(AppConfig.class);
 
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\\}");
+    static final String DEFAULT_SIMPLIFY_URL =
+            "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json";
+
+    private static final Pattern PLACEHOLDER =Pattern.compile("\\$\\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\\}");
 
     private String adzunaAppId;
     private String adzunaAppKey;
@@ -35,6 +40,13 @@ public class AppConfig {
     private FilterCriteria filterCriteria;
 
     private Map<String, Boolean> providerToggles = Map.of();
+
+    private Map<String, String> greenhouseBoards = Map.of();
+    private Map<String, String> leverBoards = Map.of();
+    private Map<String, String> ashbyBoards = Map.of();
+    private List<String> boardLocations = List.of();
+    private List<String> simplifyUrls = List.of();
+    private int simplifyMaxAgeDays;
 
     private int statusIntervalHours;
     private boolean consoleEnabled;
@@ -96,7 +108,22 @@ public class AppConfig {
             });
             config.providerToggles = Map.copyOf(toggles);
 
-            Map<String, Object> notifications = (Map<String, Object>) root.getOrDefault("notifications", Map.of());
+            Map<String, Object> boards = (Map<String, Object>) root.getOrDefault("boards", Map.of());
+            config.greenhouseBoards = parseBoards(boards.get("greenhouse"));
+            config.leverBoards = parseBoards(boards.get("lever"));
+            config.ashbyBoards = parseBoards(boards.get("ashby"));
+            config.boardLocations = ((List<Object>) boards.getOrDefault("locations", List.of())).stream()
+                    .map(Object::toString)
+                    .toList();
+
+            Map<String, Object> simplify = (Map<String, Object>) boards.getOrDefault("simplify", Map.of());
+            List<String> simplifyUrls = ((List<Object>) simplify.getOrDefault("urls", List.of())).stream()
+                    .map(url -> resolve(url.toString()))
+                    .toList();
+            config.simplifyUrls = simplifyUrls.isEmpty() ? List.of(DEFAULT_SIMPLIFY_URL) : simplifyUrls;
+            config.simplifyMaxAgeDays = getInt(simplify, "max_age_days", 45);
+
+            Map<String, Object> notifications =(Map<String, Object>) root.getOrDefault("notifications", Map.of());
 
             config.statusIntervalHours = getInt(notifications, "status_interval_hours", 24);
 
@@ -159,6 +186,23 @@ public class AppConfig {
         return resolved.toString();
     }
 
+    static Map<String, String> parseBoards(Object value) {
+        Map<String, String> boards = new LinkedHashMap<>();
+        if (value instanceof Map<?, ?> map) {
+            map.forEach((slug, name) -> boards.put(slug.toString().trim(), name == null ? "" : name.toString().trim()));
+        } else if (value instanceof List<?> list) {
+            for (Object entry : list) {
+                if (entry instanceof Map<?, ?> named) {
+                    boards.putAll(parseBoards(named));
+                } else if (entry != null) {
+                    boards.put(entry.toString().trim(), "");
+                }
+            }
+        }
+        boards.remove("");
+        return Collections.unmodifiableMap(boards);
+    }
+
     static ExcludeScope parseExcludeScope(String value) {
         try {
             return ExcludeScope.valueOf(value.trim().toUpperCase(Locale.ROOT));
@@ -195,7 +239,13 @@ public class AppConfig {
     public String getSearchLocation() { return searchLocation; }
     public int getPollIntervalMinutes() { return pollIntervalMinutes; }
     public FilterCriteria getFilterCriteria() { return filterCriteria; }
-    public int getStatusIntervalHours() { return statusIntervalHours; }
+    public Map<String, String> getGreenhouseBoards() { return greenhouseBoards; }
+    public Map<String, String> getLeverBoards() { return leverBoards; }
+    public Map<String, String> getAshbyBoards() { return ashbyBoards; }
+    public List<String> getBoardLocations() { return boardLocations; }
+    public List<String> getSimplifyUrls(){ return simplifyUrls; }
+    public int getSimplifyMaxAgeDays() { return simplifyMaxAgeDays; }
+    public int getStatusIntervalHours(){ return statusIntervalHours; }
     public boolean isConsoleEnabled(){ return consoleEnabled; }
     public boolean isDiscordEnabled() { return discordEnabled; }
     public String getDiscordWebhookUrl() { return discordWebhookUrl; }

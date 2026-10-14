@@ -2,9 +2,13 @@ package com.jobhunter;
 
 import com.jobhunter.api.AdzunaProvider;
 import com.jobhunter.api.ArbeitnowProvider;
+import com.jobhunter.api.AshbyProvider;
+import com.jobhunter.api.GreenhouseProvider;
 import com.jobhunter.api.JSearchProvider;
+import com.jobhunter.api.LeverProvider;
 import com.jobhunter.api.RemotiveProvider;
 import com.jobhunter.api.JobProvider;
+import com.jobhunter.api.SimplifyProvider;
 import com.jobhunter.config.AppConfig;
 import com.jobhunter.filter.JobFilter;
 import com.jobhunter.notification.ConsoleNotifier;
@@ -18,6 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.jobhunter.api.LocationScopedProvider.scope;
 
 public class App {
 
@@ -92,7 +98,25 @@ public class App {
             providers.add(new RemotiveProvider());
         }
 
-        log.info("Enabled providers: {}", providers.stream().map(JobProvider::getName).toList());
+        List<String> boardLocations = config.getBoardLocations();
+
+        if (config.isProviderEnabled("greenhouse", true) && !config.getGreenhouseBoards().isEmpty()) {
+            providers.add(scope(new GreenhouseProvider(config.getGreenhouseBoards()), boardLocations));
+        }
+
+        if (config.isProviderEnabled("lever", true) && !config.getLeverBoards().isEmpty()) {
+            providers.add(scope(new LeverProvider(config.getLeverBoards()), boardLocations));
+        }
+
+        if (config.isProviderEnabled("ashby", true) && !config.getAshbyBoards().isEmpty()) {
+            providers.add(scope(new AshbyProvider(config.getAshbyBoards()), boardLocations));
+        }
+
+        if (config.isProviderEnabled("simplify", false)) {
+            providers.add(scope(new SimplifyProvider(config.getSimplifyUrls(), config.getSimplifyMaxAgeDays()), boardLocations));
+        }
+
+        log.info("Enabled providers: {}",providers.stream().map(JobProvider::getName).toList());
         return providers;
     }
 

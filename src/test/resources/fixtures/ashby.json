@@ -1,0 +1,48 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "37c6d60e-1bd3-4b11-a8e4-25d06df752fc",
+      "title": "Machine Learning Intern",
+      "location": "Montreal",
+      "secondaryLocations": [
+        {
+          "location": "Toronto",
+          "address": {}
+        }
+      ],
+      "isRemote": false,
+      "isListed": true,
+      "jobUrl": "https://jobs.ashbyhq.com/valence/37c6d60e",
+      "publishedAt": "2026-04-28T19:01:33.578+00:00",
+      "descriptionPlain": "Train models with PyTorch."
+    },
+    {
+      "id": "hidden",
+      "title": "Unlisted Role",
+      "location": "Montreal",
+      "isListed": false,
+      "jobUrl": "https://jobs.ashbyhq.com/valence/hidden",
+      "publishedAt": "2026-04-28T19:01:33.578+00:00"
+    },
+    {
+      "id": "remote-1",
+      "title": "Software Engineer Intern",
+      "location": "Canada",
+      "isRemote": true,
+      "isListed": true,
+      "jobUrl": "https://jobs.ashbyhq.com/valence/remote-1",
+      "publishedAt": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "nulls",
+      "title": "Research Engineer Intern",
+      "location": "Montreal",
+      "isRemote": null,
+      "workplaceType": null,
+      "isListed": true,
+      "jobUrl": "https://jobs.ashbyhq.com/valence/nulls",
+      "publishedAt": "2026-09-02T00:00:00Z"
+    }
+  ]
+}

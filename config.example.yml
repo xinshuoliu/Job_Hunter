@@ -18,6 +18,30 @@ providers:
   jsearch_linkedin: true
   arbeitnow: false
   remotive: false
+  greenhouse: true
+  lever: true
+  ashby: true
+  simplify: true
+
+boards:
+  locations:
+    - "Montreal"
+    - "Remote in Canada"
+    - "Canada - Remote"
+  greenhouse:
+    - workleap
+    - appdirect: "AppDirect"
+  lever:
+    - mirego
+    - plusgrade
+  ashby:
+    - cohere
+    - hopper
+    - valence: "Valence Labs"
+  simplify:
+    max_age_days: 45
+    urls:
+      - "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json"
 
 filters:
   required_keywords:

@@ -1,0 +1,22 @@
+{
+  "jobs": [
+    {
+      "id": 5196800007,
+      "title": "Software Developer Intern - Winter 2027 ",
+      "company_name": "Workleap",
+      "location": { "name": "Montreal, Quebec, Canada" },
+      "absolute_url": "https://job-boards.greenhouse.io/workleap/jobs/5196800007",
+      "first_published": "2026-08-26T09:18:22-04:00",
+      "updated_at": "2026-10-07T11:21:03-04:00",
+      "content": "&lt;div&gt;&lt;h2&gt;About&lt;/h2&gt;&lt;p&gt;Build Java &amp;amp; React services.&lt;/p&gt;&lt;/div&gt;"
+    },
+    {
+      "id": 5196800008,
+      "title": "Marketing Analyst",
+      "location": { "name": "Canada - Remote" },
+      "absolute_url": "https://job-boards.greenhouse.io/workleap/jobs/5196800008",
+      "updated_at": "2026-10-01T08:00:00-04:00"
+    }
+  ],
+  "meta": { "total": 2 }
+}

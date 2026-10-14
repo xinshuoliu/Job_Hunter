@@ -5,6 +5,9 @@ import com.jobhunter.model.FilterCriteria.ExcludeScope;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class AppConfigTest {
@@ -52,6 +55,16 @@ class AppConfigTest {
         assertEquals(ExcludeScope.ALL, AppConfig.parseExcludeScope("all"));
         assertEquals(ExcludeScope.TITLE, AppConfig.parseExcludeScope(" Title "));
         assertEquals(ExcludeScope.TITLE, AppConfig.parseExcludeScope("description"));
+    }
+
+    @Test
+    @DisplayName("Boards accept plain slugs, named slugs, or a slug-to-name map")
+    void parsesBoards() {
+        assertEquals(Map.of("mirego", "", "valence", "Valence Labs"),
+                AppConfig.parseBoards(List.of("mirego", Map.of("valence", "Valence Labs"))));
+        assertEquals(Map.of("cohere", "Cohere"), AppConfig.parseBoards(Map.of("cohere", "Cohere")));
+        assertEquals(Map.of(), AppConfig.parseBoards(null));
+        assertEquals(List.of("b", "a"), List.copyOf(AppConfig.parseBoards(List.of("b", "a")).keySet()));
     }
 
     private void assumeEnvironmentHasPath(String path) {
