@@ -1,7 +1,9 @@
 package com.jobhunter.filter;
 
 import com.jobhunter.model.FilterCriteria;
+import com.jobhunter.model.FilterCriteria.ExcludeScope;
 import com.jobhunter.model.Job;
+import com.jobhunter.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,47 +34,37 @@ public class JobFilter {
     }
 
     private boolean matchesRequiredKeywords(Job job) {
-        if (criteria.getRequiredKeywords() == null || criteria.getRequiredKeywords().isEmpty()) {
+        if (isEmpty(criteria.getRequiredKeywords())) {
             return true;
         }
-        String title = job.getTitle() == null ? "" : job.getTitle().toLowerCase();
-        return criteria.getRequiredKeywords().stream()
-                .anyMatch(keyword -> title.contains(keyword.toLowerCase()));
+        return containsAny(Text.normalize(job.getTitle()), criteria.getRequiredKeywords());
     }
 
     private boolean matchesKeywords(Job job) {
-        if (criteria.getKeywords() == null || criteria.getKeywords().isEmpty()) {
+        if (isEmpty(criteria.getKeywords())) {
             return true;
         }
-
-        String searchable = buildSearchableText(job);
-
-        return criteria.getKeywords().stream()
-                .anyMatch(keyword -> searchable.contains(keyword.toLowerCase()));
+        return containsAny(buildSearchableText(job), criteria.getKeywords());
     }
 
     private boolean matchesExcludeKeywords(Job job) {
-        if (criteria.getExcludeKeywords() == null || criteria.getExcludeKeywords().isEmpty()) {
+        if (isEmpty(criteria.getExcludeKeywords())) {
             return false;
         }
-
-        String searchable = buildSearchableText(job);
-
-        return criteria.getExcludeKeywords().stream()
-                .anyMatch(keyword -> searchable.contains(keyword.toLowerCase()));
+        String searchable = criteria.getExcludeScope() == ExcludeScope.ALL
+                ? buildSearchableText(job)
+                : Text.normalize(job.getTitle());
+        return containsAny(searchable, criteria.getExcludeKeywords());
     }
 
     private boolean matchesLocation(Job job) {
-        if (criteria.getLocations() == null || criteria.getLocations().isEmpty()) {
+        if (isEmpty(criteria.getLocations())) {
             return true;
         }
         if (job.getLocation() == null) {
             return false;
         }
-
-        String jobLocation = job.getLocation().toLowerCase();
-        return criteria.getLocations().stream()
-                .anyMatch(loc -> jobLocation.contains(loc.toLowerCase()));
+        return containsAny(Text.normalize(job.getLocation()), criteria.getLocations());
     }
 
     private boolean matchesMinSalary(Job job) {
@@ -86,13 +78,22 @@ public class JobFilter {
         return job.getSalaryMax() >= criteria.getMinSalary();
     }
 
+    private static boolean containsAny(String normalizedText, List<String> terms) {
+        return terms.stream().anyMatch(term -> Text.containsTerm(normalizedText, term));
+    }
+
+    private static boolean isEmpty(List<String> values) {
+        return values == null || values.isEmpty();
+    }
+
     private String buildSearchableText(Job job) {
-        StringBuilder sb = new StringBuilder();
-        if (job.getTitle() != null) sb.append(job.getTitle());
-        sb.append(" ");
-        if (job.getDescription() != null) sb.append(job.getDescription());
-        sb.append(" ");
-        if (job.getCompany() != null) sb.append(job.getCompany());
-        return sb.toString().toLowerCase();
+        return Text.normalize(String.join(" ",
+                nullToEmpty(job.getTitle()),
+                nullToEmpty(job.getDescription()),
+                nullToEmpty(job.getCompany())));
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 }

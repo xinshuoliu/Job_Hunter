@@ -2,7 +2,6 @@ package com.jobhunter;
 
 import com.jobhunter.api.AdzunaProvider;
 import com.jobhunter.api.ArbeitnowProvider;
-import com.jobhunter.api.IndeedRssProvider;
 import com.jobhunter.api.JSearchProvider;
 import com.jobhunter.api.RemotiveProvider;
 import com.jobhunter.api.JobProvider;
@@ -48,7 +47,7 @@ public class App {
         JobScheduler scheduler = new JobScheduler(
                 providers, filter, repository, notifiers,
                 config.getSearchQuery(), config.getSearchLocation(),
-                config.getRetentionDays()
+                config.getRetentionDays(), config.getStatusIntervalHours()
         );
 
         Runtime.getRuntime().addShutdownHook(new Thread(scheduler::stop, "job-hunter-shutdown"));
@@ -91,10 +90,6 @@ public class App {
 
         if (config.isProviderEnabled("remotive", false)) {
             providers.add(new RemotiveProvider());
-        }
-
-        if (config.isProviderEnabled("indeed", false)) {
-            providers.add(new IndeedRssProvider());
         }
 
         log.info("Enabled providers: {}", providers.stream().map(JobProvider::getName).toList());

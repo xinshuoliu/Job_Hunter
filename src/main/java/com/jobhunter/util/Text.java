@@ -19,4 +19,10 @@ public final class Text {
         String lower = withoutAccents.toLowerCase(Locale.ROOT);
         return NON_ALPHANUMERIC.matcher(lower).replaceAll(" ").trim();
     }
+
+    public static boolean containsTerm(String normalizedText, String term) {
+        String normalizedTerm = normalize(term);
+        if (normalizedTerm.isEmpty() || normalizedText == null || normalizedText.isEmpty()) return false;
+        return (" " + normalizedText + " ").contains(" " + normalizedTerm + " ");
+    }
 }

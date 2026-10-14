@@ -23,6 +23,8 @@ public class JobScheduler {
     private static final Logger log = LoggerFactory.getLogger(JobScheduler.class);
 
     private static final int PAGE_SIZE_HINT = 20;
+    private static final String STATUS_RUN_KEY = "status-update";
+    private static final int DEFAULT_STATUS_INTERVAL_HOURS = 24;
 
     private final List<JobProvider> providers;
     private final JobFilter filter;
@@ -31,17 +33,26 @@ public class JobScheduler {
     private final String searchQuery;
     private final String searchLocation;
     private final int retentionDays;
+    private final int statusIntervalHours;
     private final ScheduledExecutorService executor;
 
     public JobScheduler(List<JobProvider> providers, JobFilter filter,
                         JobRepository repository, List<Notifier> notifiers,
                         String searchQuery, String searchLocation) {
-        this(providers, filter, repository, notifiers, searchQuery, searchLocation, 0);
+        this(providers, filter, repository, notifiers, searchQuery, searchLocation, 0, DEFAULT_STATUS_INTERVAL_HOURS);
     }
 
     public JobScheduler(List<JobProvider> providers, JobFilter filter,
                         JobRepository repository, List<Notifier> notifiers,
                         String searchQuery, String searchLocation, int retentionDays) {
+        this(providers, filter, repository, notifiers, searchQuery, searchLocation,
+                retentionDays, DEFAULT_STATUS_INTERVAL_HOURS);
+    }
+
+    public JobScheduler(List<JobProvider> providers, JobFilter filter,
+                        JobRepository repository, List<Notifier> notifiers,
+                        String searchQuery, String searchLocation, int retentionDays,
+                        int statusIntervalHours) {
         this.providers = providers;
         this.filter = filter;
         this.repository = repository;
@@ -49,6 +60,7 @@ public class JobScheduler {
         this.searchQuery = searchQuery;
         this.searchLocation = searchLocation;
         this.retentionDays = retentionDays;
+        this.statusIntervalHours = statusIntervalHours;
         this.executor = Executors.newSingleThreadScheduledExecutor();
     }
 
@@ -80,9 +92,7 @@ public class JobScheduler {
 
             if (pending.isEmpty()) {
                 log.info("No new jobs to notify");
-                for (Notifier notifier : notifiers) {
-                    notifier.notifyStatus("✅ Job Hunter checked all sources — no new internships found this cycle.");
-                }
+                sendStatusIfDue();
             } else {
                 log.info("🔔 {} job(s) to notify ({} new, {} retried)",
                         pending.size(), newJobs.size(), pending.size() - newJobs.size());
@@ -124,6 +134,20 @@ public class JobScheduler {
             log.info("No jobs fetched from any provider");
         }
         return allJobs;
+    }
+
+    private void sendStatusIfDue() {
+        if (statusIntervalHours <= 0 || !repository.shouldProviderRun(STATUS_RUN_KEY, statusIntervalHours)) {
+            return;
+        }
+        for (Notifier notifier : notifiers) {
+            try {
+                notifier.notifyStatus("✅ Job Hunter is running — no new matching jobs since the last check.");
+            } catch (Exception e) {
+                log.error("Status update failed: {}", e.getMessage());
+            }
+        }
+        repository.markProviderRan(STATUS_RUN_KEY);
     }
 
     private List<Job> withPendingRetries(List<Job> newJobs) {

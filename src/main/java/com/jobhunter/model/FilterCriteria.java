@@ -4,12 +4,15 @@ import java.util.List;
 
 public class FilterCriteria {
 
+    public enum ExcludeScope { TITLE, ALL }
+
     private List<String> requiredKeywords;
     private List<String> keywords;
     private List<String> excludeKeywords;
     private List<String> locations;
     private Double minSalary;
     private String currency;
+    private ExcludeScope excludeScope = ExcludeScope.TITLE;
 
     public FilterCriteria() {}
 
@@ -30,4 +33,7 @@ public class FilterCriteria {
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
+    public ExcludeScope getExcludeScope() { return excludeScope; }
+    public void setExcludeScope(ExcludeScope excludeScope) { this.excludeScope = excludeScope; }
 }

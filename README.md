@@ -89,6 +89,15 @@ See `config.yml` for all options. Key sections:
 | `notifications` | Enable/configure Console, Discord, or Email alerts |
 | `database` | SQLite path and `retention_days` for pruning old postings |
 
+Keywords and locations match whole words, ignoring case and accents, so `intern` matches
+"Software Intern" but not "Internal Tools", and `Montreal` matches "Montréal, QC". Multi-word
+terms such as `co-op` or `new grad` work too. `required_keywords` and, by default,
+`exclude_keywords` only look at the job title; set `exclude_scope: "all"` to also scan the
+description and company.
+
+When a cycle finds nothing new, a short status message is sent at most once every
+`notifications.status_interval_hours` (default 24, `0` disables it).
+
 Jobs are deduplicated on normalized title + company, so the same posting reported by two
 providers with different location spellings is only announced once. A posting is only marked
 as notified once every channel confirms delivery; anything that failed is retried next cycle.

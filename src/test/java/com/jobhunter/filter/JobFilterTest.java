@@ -116,6 +116,62 @@ class JobFilterTest {
         assertEquals(2, result.size());
     }
 
+    @Test
+    @DisplayName("Keywords match whole words only")
+    void keywordsMatchWholeWords() {
+        criteria.setRequiredKeywords(List.of("intern", "stage"));
+        JobFilter filter = new JobFilter(criteria);
+
+        assertTrue(filter.matches(createJob("Software Developer Intern", "Acme", "Montreal")));
+        assertTrue(filter.matches(createJob("Stage en développement", "Acme", "Montreal")));
+        assertFalse(filter.matches(createJob("Internal Tools Developer", "Acme", "Montreal")));
+        assertFalse(filter.matches(createJob("International Sales Rep", "Acme", "Montreal")));
+        assertFalse(filter.matches(createJob("Backstage Technician", "Acme", "Montreal")));
+    }
+
+    @Test
+    @DisplayName("Multi-word and hyphenated keywords match")
+    void matchesPhrases() {
+        criteria.setRequiredKeywords(List.of("co-op", "new grad"));
+        JobFilter filter = new JobFilter(criteria);
+
+        assertTrue(filter.matches(createJob("Software Co-op (Winter 2027)", "Acme", "Montreal")));
+        assertTrue(filter.matches(createJob("New Grad Software Engineer", "Acme", "Montreal")));
+        assertFalse(filter.matches(createJob("Cooperative Manager", "Acme", "Montreal")));
+    }
+
+    @Test
+    @DisplayName("Location matching ignores accents")
+    void locationIgnoresAccents() {
+        criteria.setLocations(List.of("Montreal"));
+        JobFilter filter = new JobFilter(criteria);
+
+        assertTrue(filter.matches(createJob("Developer", "Acme", "Montréal, Québec")));
+    }
+
+    @Test
+    @DisplayName("Exclude keywords only check the title by default")
+    void excludeChecksTitleByDefault() {
+        criteria.setExcludeKeywords(List.of("senior"));
+        JobFilter filter = new JobFilter(criteria);
+
+        Job job = createJob("Software Intern", "Acme", "Montreal");
+        job.setDescription("You will pair with senior engineers.");
+        assertTrue(filter.matches(job));
+    }
+
+    @Test
+    @DisplayName("Exclude scope ALL also checks the description")
+    void excludeScopeAllChecksDescription() {
+        criteria.setExcludeKeywords(List.of("senior"));
+        criteria.setExcludeScope(FilterCriteria.ExcludeScope.ALL);
+        JobFilter filter = new JobFilter(criteria);
+
+        Job job = createJob("Software Intern", "Acme", "Montreal");
+        job.setDescription("You will pair with senior engineers.");
+        assertFalse(filter.matches(job));
+    }
+
     private Job createJob(String title, String company, String location) {
         Job job = new Job();
         job.setId("test-" + System.nanoTime());

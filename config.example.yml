@@ -18,7 +18,6 @@ providers:
   jsearch_linkedin: true
   arbeitnow: false
   remotive: false
-  indeed: false
 
 filters:
   required_keywords:
@@ -32,6 +31,7 @@ filters:
     - "developer"
     - "java"
     - "python"
+  exclude_scope: "title"
   exclude_keywords:
     - "senior"
     - "principal"
@@ -42,6 +42,8 @@ filters:
     - "Canada"
 
 notifications:
+  status_interval_hours: 24
+
   console:
     enabled: true
 

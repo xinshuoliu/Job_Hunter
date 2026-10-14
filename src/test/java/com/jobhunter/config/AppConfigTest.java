@@ -1,5 +1,7 @@
 package com.jobhunter.config;
 
+import com.jobhunter.model.FilterCriteria.ExcludeScope;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +44,14 @@ class AppConfigTest {
     void placeholderInsideText() {
         assertEquals("prefix-value-suffix",
                 AppConfig.resolve("prefix-${" + UNSET + ":-value}-suffix"));
+    }
+
+    @Test
+    @DisplayName("exclude_scope parses known values and falls back to title")
+    void parsesExcludeScope() {
+        assertEquals(ExcludeScope.ALL, AppConfig.parseExcludeScope("all"));
+        assertEquals(ExcludeScope.TITLE, AppConfig.parseExcludeScope(" Title "));
+        assertEquals(ExcludeScope.TITLE, AppConfig.parseExcludeScope("description"));
     }
 
     private void assumeEnvironmentHasPath(String path) {

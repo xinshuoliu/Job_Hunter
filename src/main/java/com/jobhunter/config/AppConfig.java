@@ -1,6 +1,7 @@
 package com.jobhunter.config;
 
 import com.jobhunter.model.FilterCriteria;
+import com.jobhunter.model.FilterCriteria.ExcludeScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,6 +36,7 @@ public class AppConfig {
 
     private Map<String, Boolean> providerToggles = Map.of();
 
+    private int statusIntervalHours;
     private boolean consoleEnabled;
     private boolean discordEnabled;
     private String discordWebhookUrl;
@@ -81,6 +84,7 @@ public class AppConfig {
                 criteria.setMinSalary(((Number) filters.get("min_salary")).doubleValue());
             }
             criteria.setCurrency(getString(filters, "currency", "CAD"));
+            criteria.setExcludeScope(parseExcludeScope(getString(filters, "exclude_scope", "title")));
             config.filterCriteria = criteria;
 
             Map<String, Object> providers = (Map<String, Object>) root.getOrDefault("providers", Map.of());
@@ -94,7 +98,9 @@ public class AppConfig {
 
             Map<String, Object> notifications = (Map<String, Object>) root.getOrDefault("notifications", Map.of());
 
-            Map<String, Object> console = (Map<String, Object>) notifications.getOrDefault("console", Map.of());
+            config.statusIntervalHours = getInt(notifications, "status_interval_hours", 24);
+
+            Map<String, Object> console =(Map<String, Object>) notifications.getOrDefault("console", Map.of());
             config.consoleEnabled = getBoolean(console, "enabled", true);
 
             Map<String, Object> discord = (Map<String, Object>) notifications.getOrDefault("discord", Map.of());
@@ -153,6 +159,15 @@ public class AppConfig {
         return resolved.toString();
     }
 
+    static ExcludeScope parseExcludeScope(String value) {
+        try {
+            return ExcludeScope.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown exclude_scope '{}' — expected 'title' or 'all', using 'title'", value);
+            return ExcludeScope.TITLE;
+        }
+    }
+
     private static String getString(Map<String, Object> map, String key, String defaultVal) {
         Object val = map.get(key);
         return val != null ? resolve(val.toString()) : defaultVal;
@@ -180,7 +195,8 @@ public class AppConfig {
     public String getSearchLocation() { return searchLocation; }
     public int getPollIntervalMinutes() { return pollIntervalMinutes; }
     public FilterCriteria getFilterCriteria() { return filterCriteria; }
-    public boolean isConsoleEnabled() { return consoleEnabled; }
+    public int getStatusIntervalHours() { return statusIntervalHours; }
+    public boolean isConsoleEnabled(){ return consoleEnabled; }
     public boolean isDiscordEnabled() { return discordEnabled; }
     public String getDiscordWebhookUrl() { return discordWebhookUrl; }
     public String getDiscordMentionUserId() { return discordMentionUserId; }

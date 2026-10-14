@@ -109,6 +109,24 @@ class JobSchedulerTest {
         assertEquals(1, notifier.statusMessages.size());
     }
 
+    @Test
+    @DisplayName("Status messages are throttled to the configured interval")
+    void statusMessagesAreThrottled() {
+        scheduler(List.of(provider("adzuna"))).runCycle();
+        scheduler(List.of(provider("adzuna"))).runCycle();
+
+        assertEquals(1, notifier.statusMessages.size());
+    }
+
+    @Test
+    @DisplayName("A status interval of zero disables status messages")
+    void zeroStatusIntervalDisablesStatus() {
+        new JobScheduler(List.of(provider("adzuna")), new JobFilter(new FilterCriteria()), repository,
+                List.of(notifier), "software developer", "Montreal", 0, 0).runCycle();
+
+        assertTrue(notifier.statusMessages.isEmpty());
+    }
+
     private JobScheduler scheduler(List<JobProvider> providers) {
         return new JobScheduler(providers, new JobFilter(new FilterCriteria()), repository,
                 List.of(notifier), "software developer", "Montreal", 0);
