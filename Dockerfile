@@ -7,7 +7,7 @@ RUN mvn -B -q dependency:go-offline
 COPY src ./src
 RUN mvn -B -q package -DskipTests
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 ARG APP_UID=1000
 RUN (userdel --remove ubuntu || true) 2>/dev/null \
