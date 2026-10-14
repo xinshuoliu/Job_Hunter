@@ -21,9 +21,10 @@ import java.util.List;
 public class JSearchProvider implements JobProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JSearchProvider.class);
-    private static final String BASE_URL = "https://jsearch.p.rapidapi.com/search-v2";
+    static final String DEFAULT_BASE_URL = "https://jsearch.p.rapidapi.com/search-v2";
 
     private final OkHttpClient client;
+    private final String baseUrl;
     private final String apiKey;
     private final String querySuffix;
 
@@ -32,7 +33,12 @@ public class JSearchProvider implements JobProvider {
     }
 
     public JSearchProvider(String apiKey, String querySuffix) {
-        this.client = Http.client();
+        this(Http.client(), DEFAULT_BASE_URL, apiKey, querySuffix);
+    }
+
+    JSearchProvider(OkHttpClient client, String baseUrl, String apiKey, String querySuffix) {
+        this.client = client;
+        this.baseUrl = baseUrl;
         this.apiKey = apiKey;
         this.querySuffix = querySuffix;
     }
@@ -46,7 +52,7 @@ public class JSearchProvider implements JobProvider {
     @Override
     public List<Job> fetchJobs(String query, String location, int page) throws IOException {
         String fullQuery = query + " intern " + location + (querySuffix.isEmpty() ? "" : " " + querySuffix);
-        HttpUrl url = HttpUrl.parse(BASE_URL).newBuilder()
+        HttpUrl url = HttpUrl.parse(baseUrl).newBuilder()
                 .addQueryParameter("query", fullQuery)
                 .addQueryParameter("page", String.valueOf(page))
                 .addQueryParameter("num_pages", "1")

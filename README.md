@@ -75,7 +75,14 @@ docker compose up --build
 
 The process runs continuously, polling every `search.poll_interval_minutes`. Each provider
 additionally has its own minimum interval, tracked in SQLite, so restarts never re-hammer the
-APIs. The image does not bake in `config.yml` — mount it (docker compose already does).
+APIs. Due providers are fetched in parallel, and failed requests (timeouts, HTTP 429 and 5xx)
+are retried with exponential backoff, honouring `Retry-After`.
+
+The image does not bake in `config.yml` — mount it (docker compose already does). Inside the
+container, set `database.path: "data/jobs.db"` so the database lands in the mounted `./data`
+volume and survives rebuilds. The container runs as a non-root user with UID 1000; build with
+`--build-arg APP_UID=$(id -u)` if your host user differs and the volumes are not writable. The
+tracker commands work through compose as well, e.g. `docker compose run --rm job-hunter list`.
 
 To run from cron, Windows Task Scheduler or a CI job instead, do a single cycle and exit:
 
@@ -205,20 +212,24 @@ mvn test
 ## Adding a New Job Source
 
 1. Create a class implementing `JobProvider` in `src/main/java/com/jobhunter/api/`
-2. Implement `getName()` and `fetchJobs()`
-3. Register it in `App.buildProviders()` and add a toggle under `providers:` in the config
+2. Implement `getName()` and `fetchJobs()`, taking the `OkHttpClient` and base URL in a
+   package-private constructor so it can be tested against `MockWebServer`
+3. Add one line to `ProviderRegistry` with its toggle name, default, and the config it needs,
+   then add the toggle under `providers:` in the config
 
-That's it — the filter, storage, and notification layers handle the rest.
+That's it — the filter, storage, and notification layers handle the rest. `ProviderHttpTest`
+shows how to cover a provider with a recorded response in `src/test/resources/fixtures/`.
 
 ## Tech Stack
 
-- **Java 21** — Language
-- **OkHttp** — HTTP client for API calls
+- **Java 21** — Language (virtual threads for parallel fetching)
+- **OkHttp 5** — HTTP client with retry and backoff
 - **Gson** — JSON parsing
 - **SQLite** — Local persistence
-- **JUnit 5 + Mockito** — Testing
+- **Angus Mail** — Email notifications
+- **JUnit 6 + MockWebServer** — Testing
 - **Docker** — Containerization
-- **GitHub Actions** — CI/CD
+- **GitHub Actions + Dependabot** — CI and dependency updates
 
 ## License
 

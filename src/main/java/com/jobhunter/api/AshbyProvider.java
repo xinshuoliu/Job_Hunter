@@ -19,14 +19,16 @@ import java.util.Map;
 public class AshbyProvider extends CompanyBoardProvider {
 
     private static final Logger log = LoggerFactory.getLogger(AshbyProvider.class);
-    private static final String BASE_URL = "https://api.ashbyhq.com/posting-api/job-board/";
+    static final String DEFAULT_BASE_URL = "https://api.ashbyhq.com/posting-api/job-board/";
+    private final String baseUrl;
 
     public AshbyProvider(Map<String, String> companies) {
-        this(Http.client(), companies);
+        this(Http.client(), companies, DEFAULT_BASE_URL);
     }
 
-    AshbyProvider(OkHttpClient client, Map<String, String> companies) {
+    AshbyProvider(OkHttpClient client, Map<String, String> companies, String baseUrl) {
         super(client, companies);
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -34,7 +36,7 @@ public class AshbyProvider extends CompanyBoardProvider {
 
     @Override
     protected String boardUrl(String company) {
-        return BASE_URL + company;
+        return baseUrl + company;
     }
 
     @Override

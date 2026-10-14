@@ -21,7 +21,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -160,25 +163,35 @@ public class JobScheduler {
         return last.isEmpty() || last.get().isBefore(todaysDigest);
     }
 
-    private List<Job> fetchFromProviders() {
-        List<Job> allJobs = new ArrayList<>();
+    private record FetchResult(List<Job> jobs, Exception failure) {
+    }
 
+    private List<Job> fetchFromProviders() {
+        List<JobProvider> due = new ArrayList<>();
         for (JobProvider provider : providers) {
-            if (!repository.shouldProviderRun(provider.getName(), provider.getIntervalHours())) {
+            if (repository.shouldProviderRun(provider.getName(), provider.getIntervalHours())) {
+                due.add(provider);
+            } else {
                 log.info("Skipping {} — not due yet (interval: {}h)", provider.getName(), provider.getIntervalHours());
-                continue;
             }
-            try {
-                for (int page = 1; page <= provider.getMaxPages(); page++) {
-                    List<Job> jobs = provider.fetchJobs(settings.searchQuery(), settings.searchLocation(), page);
-                    if (jobs.isEmpty()) break;
-                    allJobs.addAll(jobs);
-                    log.info("Fetched {} jobs from {} (page {})", jobs.size(), provider.getName(), page);
-                    if (jobs.size() < PAGE_SIZE_HINT) break;
+        }
+
+        List<Job> allJobs = new ArrayList<>();
+        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<FetchResult>> results = new ArrayList<>();
+            for (JobProvider provider : due) {
+                results.add(pool.submit(() -> fetchAllPages(provider)));
+            }
+
+            for (int i = 0; i < due.size(); i++) {
+                JobProvider provider = due.get(i);
+                FetchResult result = await(results.get(i));
+                allJobs.addAll(result.jobs());
+                if (result.failure() == null) {
+                    repository.markProviderRan(provider.getName());
+                } else {
+                    log.error("Failed to fetch from {}: {}", provider.getName(), result.failure().getMessage());
                 }
-                repository.markProviderRan(provider.getName());
-            } catch (Exception e) {
-                log.error("Failed to fetch from {}: {}", provider.getName(), e.getMessage());
             }
         }
 
@@ -186,6 +199,33 @@ public class JobScheduler {
             log.info("No jobs fetched from any provider");
         }
         return allJobs;
+    }
+
+    private FetchResult fetchAllPages(JobProvider provider) {
+        List<Job> jobs = new ArrayList<>();
+        try {
+            for (int page = 1; page <= provider.getMaxPages(); page++) {
+                List<Job> pageJobs = provider.fetchJobs(settings.searchQuery(), settings.searchLocation(), page);
+                if (pageJobs.isEmpty()) break;
+                jobs.addAll(pageJobs);
+                log.info("Fetched {} jobs from {} (page {})", pageJobs.size(), provider.getName(), page);
+                if (pageJobs.size() < PAGE_SIZE_HINT) break;
+            }
+            return new FetchResult(jobs, null);
+        } catch (Exception e) {
+            return new FetchResult(jobs, e);
+        }
+    }
+
+    private static FetchResult await(Future<FetchResult> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new FetchResult(List.of(), e);
+        } catch (ExecutionException e) {
+            return new FetchResult(List.of(), e);
+        }
     }
 
     private void sendStatusIfDue() {

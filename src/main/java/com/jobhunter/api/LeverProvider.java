@@ -19,14 +19,16 @@ import java.util.Map;
 public class LeverProvider extends CompanyBoardProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LeverProvider.class);
-    private static final String BASE_URL = "https://api.lever.co/v0/postings/";
+    static final String DEFAULT_BASE_URL = "https://api.lever.co/v0/postings/";
+    private final String baseUrl;
 
     public LeverProvider(Map<String, String> companies) {
-        this(Http.client(), companies);
+        this(Http.client(), companies, DEFAULT_BASE_URL);
     }
 
-    LeverProvider(OkHttpClient client, Map<String, String> companies) {
+    LeverProvider(OkHttpClient client, Map<String, String> companies, String baseUrl) {
         super(client, companies);
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -34,7 +36,7 @@ public class LeverProvider extends CompanyBoardProvider {
 
     @Override
     protected String boardUrl(String company) {
-        return BASE_URL + company + "?mode=json";
+        return baseUrl + company + "?mode=json";
     }
 
     @Override

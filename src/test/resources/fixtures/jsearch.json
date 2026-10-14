@@ -1,0 +1,17 @@
+{
+  "status": "OK",
+  "data": [
+    {
+      "job_id": "abc123==",
+      "job_title": "Frontend Developer Intern",
+      "employer_name": "Coveo",
+      "job_description": "React and TypeScript.",
+      "job_apply_link": "https://interninsider.me/internships/coveo/frontend",
+      "job_city": "Montreal",
+      "job_country": "CA",
+      "job_min_salary": null,
+      "job_max_salary": null,
+      "job_posted_at_timestamp": 1791849600
+    }
+  ]
+}

@@ -1,14 +1,7 @@
 package com.jobhunter;
 
-import com.jobhunter.api.AdzunaProvider;
-import com.jobhunter.api.ArbeitnowProvider;
-import com.jobhunter.api.AshbyProvider;
-import com.jobhunter.api.GreenhouseProvider;
-import com.jobhunter.api.JSearchProvider;
-import com.jobhunter.api.LeverProvider;
-import com.jobhunter.api.RemotiveProvider;
 import com.jobhunter.api.JobProvider;
-import com.jobhunter.api.SimplifyProvider;
+import com.jobhunter.api.ProviderRegistry;
 import com.jobhunter.cli.CommandLine;
 import com.jobhunter.cli.TrackerCommands;
 import com.jobhunter.config.AppConfig;
@@ -26,8 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.jobhunter.api.LocationScopedProvider.scope;
 
 public class App {
 
@@ -126,55 +117,8 @@ public class App {
     }
 
     private static List<JobProvider> buildProviders(AppConfig config) {
-        List<JobProvider> providers = new ArrayList<>();
-
-        boolean hasAdzunaKeys = !config.getAdzunaAppId().isEmpty() && !config.getAdzunaAppKey().isEmpty();
-        if (config.isProviderEnabled("adzuna", true) && hasAdzunaKeys) {
-            providers.add(new AdzunaProvider(
-                    config.getAdzunaAppId(),
-                    config.getAdzunaAppKey(),
-                    config.getAdzunaCountry()
-            ));
-        }
-
-        boolean hasJSearchKey = !config.getJSearchApiKey().isEmpty();
-        if (config.isProviderEnabled("jsearch", true) && hasJSearchKey) {
-            providers.add(new JSearchProvider(config.getJSearchApiKey()));
-        }
-        if (config.isProviderEnabled("jsearch_linkedin", true) && hasJSearchKey) {
-            providers.add(new JSearchProvider(config.getJSearchApiKey(), "linkedin") {
-                @Override public String getName() { return "jsearch-linkedin"; }
-                @Override public int getIntervalHours() { return 12; }
-            });
-        }
-
-        if (config.isProviderEnabled("arbeitnow", false)) {
-            providers.add(new ArbeitnowProvider());
-        }
-
-        if (config.isProviderEnabled("remotive", false)) {
-            providers.add(new RemotiveProvider());
-        }
-
-        List<String> boardLocations = config.getBoardLocations();
-
-        if (config.isProviderEnabled("greenhouse", true) && !config.getGreenhouseBoards().isEmpty()) {
-            providers.add(scope(new GreenhouseProvider(config.getGreenhouseBoards()), boardLocations));
-        }
-
-        if (config.isProviderEnabled("lever", true) && !config.getLeverBoards().isEmpty()) {
-            providers.add(scope(new LeverProvider(config.getLeverBoards()), boardLocations));
-        }
-
-        if (config.isProviderEnabled("ashby", true) && !config.getAshbyBoards().isEmpty()) {
-            providers.add(scope(new AshbyProvider(config.getAshbyBoards()), boardLocations));
-        }
-
-        if (config.isProviderEnabled("simplify", false)) {
-            providers.add(scope(new SimplifyProvider(config.getSimplifyUrls(), config.getSimplifyMaxAgeDays()), boardLocations));
-        }
-
-        log.info("Enabled providers: {}",providers.stream().map(JobProvider::getName).toList());
+        List<JobProvider> providers = ProviderRegistry.build(config);
+        log.info("Enabled providers: {}", providers.stream().map(JobProvider::getName).toList());
         return providers;
     }
 

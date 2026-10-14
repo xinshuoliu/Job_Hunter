@@ -1,0 +1,24 @@
+{
+  "count": 2,
+  "results": [
+    {
+      "id": "5722019816",
+      "title": "Intern, Software (S-02-08) Winter 2027",
+      "description": "Develop C++ video software.",
+      "redirect_url": "https://www.adzuna.ca/details/5722019816",
+      "company": { "display_name": "Matrox" },
+      "location": { "display_name": "Roxboro, Montréal" },
+      "salary_min": 45000,
+      "salary_max": 52000,
+      "created": "2026-09-12T14:03:11Z"
+    },
+    {
+      "id": "5722019817",
+      "title": "Stagiaire développeur logiciel",
+      "redirect_url": "https://www.adzuna.ca/details/5722019817",
+      "company": { "display_name": "CAE" },
+      "location": { "display_name": "Montréal, Québec" },
+      "created": "2026-09-25T08:00:00"
+    }
+  ]
+}

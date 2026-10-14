@@ -20,12 +20,18 @@ import java.util.List;
 public class ArbeitnowProvider implements JobProvider {
 
     private static final Logger log = LoggerFactory.getLogger(ArbeitnowProvider.class);
-    private static final String BASE_URL = "https://www.arbeitnow.com/api/job-board-api";
+    static final String DEFAULT_BASE_URL = "https://www.arbeitnow.com/api/job-board-api";
 
     private final OkHttpClient client;
+    private final String baseUrl;
 
     public ArbeitnowProvider() {
-        this.client = Http.client();
+        this(Http.client(), DEFAULT_BASE_URL);
+    }
+
+    ArbeitnowProvider(OkHttpClient client, String baseUrl) {
+        this.client = client;
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -35,7 +41,7 @@ public class ArbeitnowProvider implements JobProvider {
 
     @Override
     public List<Job> fetchJobs(String query, String location, int page) throws IOException {
-        String url = BASE_URL + "?page=" + page;
+        String url = baseUrl + "?page=" + page;
 
         log.info("Fetching from Arbeitnow: {}", url);
 

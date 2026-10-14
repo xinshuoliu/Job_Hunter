@@ -1,6 +1,5 @@
 package com.jobhunter.api;
 
-import com.jobhunter.http.Http;
 import com.jobhunter.model.Job;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,7 @@ class CompanyBoardProviderTest {
     @Test
     @DisplayName("Greenhouse postings are parsed with clean titles and plain-text descriptions")
     void parsesGreenhouse() {
-        GreenhouseProvider provider = new GreenhouseProvider(Http.client(), Map.of("workleap", ""));
+        GreenhouseProvider provider = new GreenhouseProvider(Map.of("workleap", ""));
 
         List<Job> jobs = provider.parse(Fixtures.read("greenhouse.json"), "workleap", "");
 
@@ -37,7 +36,7 @@ class CompanyBoardProviderTest {
     @Test
     @DisplayName("A configured display name overrides the Greenhouse company name")
     void greenhouseDisplayNameWins() {
-        GreenhouseProvider provider = new GreenhouseProvider(Http.client(), Map.of("workleap", "Workleap Inc"));
+        GreenhouseProvider provider = new GreenhouseProvider(Map.of("workleap", "Workleap Inc"));
 
         List<Job> jobs = provider.parse(Fixtures.read("greenhouse.json"), "workleap", "Workleap Inc");
 
@@ -47,7 +46,7 @@ class CompanyBoardProviderTest {
     @Test
     @DisplayName("Lever postings carry all locations, remote flag and yearly salary only")
     void parsesLever() {
-        LeverProvider provider = new LeverProvider(Http.client(), Map.of("mirego", ""));
+        LeverProvider provider = new LeverProvider(Map.of("mirego", ""));
 
         List<Job> jobs = provider.parse(Fixtures.read("lever.json"), "mirego", "");
 
@@ -70,7 +69,7 @@ class CompanyBoardProviderTest {
     @Test
     @DisplayName("Ashby skips unlisted postings and includes secondary and remote locations")
     void parsesAshby() {
-        AshbyProvider provider = new AshbyProvider(Http.client(), Map.of("valence", "Valence Labs"));
+        AshbyProvider provider = new AshbyProvider(Map.of("valence", "Valence Labs"));
 
         List<Job> jobs = provider.parse(Fixtures.read("ashby.json"), "valence", "Valence Labs");
 

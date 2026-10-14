@@ -205,6 +205,25 @@ class JobSchedulerTest {
         assertEquals(2, notifier.notifyCalls);
     }
 
+    @Test
+    @DisplayName("A failing provider does not block the others and is retried next cycle")
+    void failingProviderIsIsolated() {
+        CountingProvider broken = new CountingProvider("broken", 6) {
+            @Override
+            public List<Job> fetchJobs(String query, String location, int page) {
+                super.fetchJobs(query, location, page);
+                throw new IllegalStateException("boom");
+            }
+        };
+        JobProvider healthy = provider("healthy", job("h-1", "healthy", "Java Intern", "Acme", "Montreal"));
+
+        scheduler(List.of(broken, healthy)).runCycle();
+        scheduler(List.of(broken)).runCycle();
+
+        assertEquals(1, notifier.deliveredJobs.size());
+        assertEquals(2, broken.fetchCalls, "a failed provider must not be marked as ran");
+    }
+
     private static final JobScheduler.Settings SETTINGS =
             JobScheduler.Settings.defaults("software developer", "Montreal");
     private static final Clock CLOCK = at("2026-10-13T12:00:00");

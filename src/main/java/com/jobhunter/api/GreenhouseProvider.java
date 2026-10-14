@@ -19,14 +19,16 @@ import java.util.Map;
 public class GreenhouseProvider extends CompanyBoardProvider {
 
     private static final Logger log = LoggerFactory.getLogger(GreenhouseProvider.class);
-    private static final String BASE_URL = "https://boards-api.greenhouse.io/v1/boards/";
+    static final String DEFAULT_BASE_URL = "https://boards-api.greenhouse.io/v1/boards/";
+    private final String baseUrl;
 
     public GreenhouseProvider(Map<String, String> companies) {
-        this(Http.client(), companies);
+        this(Http.client(), companies, DEFAULT_BASE_URL);
     }
 
-    GreenhouseProvider(OkHttpClient client, Map<String, String> companies) {
+    GreenhouseProvider(OkHttpClient client, Map<String, String> companies, String baseUrl) {
         super(client, companies);
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -34,7 +36,7 @@ public class GreenhouseProvider extends CompanyBoardProvider {
 
     @Override
     protected String boardUrl(String company) {
-        return BASE_URL + company + "/jobs?content=true";
+        return baseUrl + company + "/jobs?content=true";
     }
 
     @Override

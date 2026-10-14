@@ -21,12 +21,18 @@ import java.util.List;
 public class RemotiveProvider implements JobProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RemotiveProvider.class);
-    private static final String BASE_URL = "https://remotive.com/api/remote-jobs?category=software-dev&limit=100";
+    static final String DEFAULT_BASE_URL = "https://remotive.com/api/remote-jobs?category=software-dev&limit=100";
 
     private final OkHttpClient client;
+    private final String baseUrl;
 
     public RemotiveProvider() {
-        this.client = Http.client();
+        this(Http.client(), DEFAULT_BASE_URL);
+    }
+
+    RemotiveProvider(OkHttpClient client, String baseUrl) {
+        this.client = client;
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -39,9 +45,9 @@ public class RemotiveProvider implements JobProvider {
     public List<Job> fetchJobs(String query, String location, int page) throws IOException {
         if (page > 1) return List.of();
 
-        log.info("Fetching from Remotive: {}", BASE_URL);
+        log.info("Fetching from Remotive: {}", baseUrl);
 
-        Request request = new Request.Builder().url(BASE_URL).build();
+        Request request = new Request.Builder().url(baseUrl).build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {

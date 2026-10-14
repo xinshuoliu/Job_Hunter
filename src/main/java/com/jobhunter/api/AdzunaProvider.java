@@ -26,15 +26,21 @@ import java.util.List;
 public class AdzunaProvider implements JobProvider {
 
     private static final Logger log = LoggerFactory.getLogger(AdzunaProvider.class);
-    private static final String BASE_URL = "https://api.adzuna.com/v1/api/jobs";
+    static final String DEFAULT_BASE_URL = "https://api.adzuna.com/v1/api/jobs";
 
     private final OkHttpClient client;
+    private final String baseUrl;
     private final String appId;
     private final String appKey;
     private final String country;
 
     public AdzunaProvider(String appId, String appKey, String country) {
-        this.client = Http.client();
+        this(Http.client(), DEFAULT_BASE_URL, appId, appKey, country);
+    }
+
+    AdzunaProvider(OkHttpClient client, String baseUrl, String appId, String appKey, String country) {
+        this.client = client;
+        this.baseUrl = baseUrl;
         this.appId = appId;
         this.appKey = appKey;
         this.country = country;
@@ -50,7 +56,7 @@ public class AdzunaProvider implements JobProvider {
     public List<Job> fetchJobs(String query, String location, int page) throws IOException {
         String url = String.format(
                 "%s/%s/search/%d?app_id=%s&app_key=%s&what=%s&where=%s&results_per_page=20&sort_by=date",
-                BASE_URL, country, page, appId, appKey,
+                baseUrl, country, page, appId, appKey,
                 encodeQuery(query), encodeQuery(location)
         );
 

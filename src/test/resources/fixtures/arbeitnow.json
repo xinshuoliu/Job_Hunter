@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "slug": "java-intern-berlin-123",
+      "title": "Java Intern",
+      "company_name": "Acme GmbH",
+      "location": "Berlin",
+      "description": "Spring Boot",
+      "url": "https://www.arbeitnow.com/jobs/java-intern-berlin-123",
+      "created_at": 1791849600
+    },
+    {
+      "slug": "python-intern-montreal-456",
+      "title": "Python Intern",
+      "company_name": "Globex",
+      "location": "Montreal, Canada",
+      "url": "https://www.arbeitnow.com/jobs/python-intern-montreal-456",
+      "created_at": 1791849600
+    }
+  ]
+}
