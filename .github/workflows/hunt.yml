@@ -1,0 +1,79 @@
+name: Hunt
+
+on:
+  schedule:
+    - cron: "23 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "once, stats, or mark <id> <status>"
+        required: false
+        default: "once"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: job-hunter-database
+  cancel-in-progress: false
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: America/Montreal
+      GH_TOKEN: ${{ github.token }}
+      JOBHUNTER_DB_KEY: ${{ secrets.JOBHUNTER_DB_KEY }}
+      JOBHUNTER_ALLOW_EMPTY_DB: ${{ vars.JOBHUNTER_ALLOW_EMPTY_DB }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build
+        run: mvn -B -q package -DskipTests
+
+      - name: Write config
+        env:
+          JOBHUNTER_CONFIG: ${{ secrets.JOBHUNTER_CONFIG }}
+        run: |
+          if [ -z "$JOBHUNTER_CONFIG" ] || [ -z "$JOBHUNTER_DB_KEY" ]; then
+            echo "Set the JOBHUNTER_CONFIG and JOBHUNTER_DB_KEY repository secrets first." >&2
+            exit 1
+          fi
+          printf '%s\n' "$JOBHUNTER_CONFIG" > config.yml
+
+      - name: Restore database
+        run: scripts/ci/restore-db.sh data/jobs.db
+
+      - name: Run Job Hunter
+        env:
+          COMMAND: ${{ inputs.command || 'once' }}
+          JOBHUNTER_LOG_LEVEL: WARN
+        run: scripts/ci/run.sh
+
+      - name: Encrypt database
+        if: always() && hashFiles('data/jobs.db') != ''
+        run: scripts/ci/encrypt-db.sh data/jobs.db jobs.db.enc
+
+      - name: Save database
+        if: always() && hashFiles('jobs.db.enc') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: jobs-db
+          path: jobs.db.enc
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Keep the schedule enabled
+        if: github.event_name == 'schedule'
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/hunt.yml/enable"

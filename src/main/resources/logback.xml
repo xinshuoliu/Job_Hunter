@@ -17,7 +17,7 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <root level="${JOBHUNTER_LOG_LEVEL:-INFO}">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />
     </root>

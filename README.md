@@ -90,6 +90,44 @@ To run from cron, Windows Task Scheduler or a CI job instead, do a single cycle 
 java -jar target/job-hunter-1.0-SNAPSHOT.jar --config config.yml once
 ```
 
+### Run on GitHub Actions (no computer needed)
+
+`.github/workflows/hunt.yml` runs a cycle every 4 hours on GitHub's servers, free for public
+repositories. Your config, including API keys and the Discord webhook, is stored as an encrypted
+repository secret. The database is encrypted with a key only you and the workflow hold before it
+is saved between runs, so neither shows up in the public logs or artifacts. Logs are kept at
+`WARN` level so job titles are not printed either.
+
+One-time setup, from Git Bash with the GitHub CLI logged in:
+
+```bash
+scripts/setup-actions.sh      # creates .jobhunter-db.key and uploads JOBHUNTER_CONFIG + JOBHUNTER_DB_KEY
+scripts/seed-db.sh            # uploads an encrypted copy of jobs.db so nothing is announced twice
+gh workflow run hunt.yml      # first run; afterwards it runs on its own
+gh release delete db-seed --yes --cleanup-tag   # once that run has succeeded
+```
+
+`setup-actions.sh` copies your `config.yml`, switches the console notifier off and points the
+database at `data/jobs.db`. Re-run it whenever you change `config.yml`. Keep `.jobhunter-db.key`
+safe: without it the saved database cannot be decrypted.
+
+Day to day:
+
+```bash
+gh workflow run hunt.yml -f command="mark 212 applied"   # update a status remotely
+gh workflow run hunt.yml -f command="stats"
+scripts/pull-db.sh                                        # download the latest database into jobs.db
+java -jar target/job-hunter-1.0-SNAPSHOT.jar list         # then browse it locally
+```
+
+Only run one poller at a time. If both your computer and Actions poll with separate databases,
+every job is announced twice. Use `pull-db.sh` before working with the local copy, and make
+status changes through the workflow so the copy in Actions stays the source of truth.
+
+GitHub pauses scheduled workflows in public repositories after 60 days without activity; each
+scheduled run re-enables itself to prevent that. Saved databases expire after 30 days, so if the
+workflow is stopped for longer, run `seed-db.sh` again before restarting it.
+
 ### 4. Track applications
 
 Every stored job has an application status. The CLI reads the same database:
